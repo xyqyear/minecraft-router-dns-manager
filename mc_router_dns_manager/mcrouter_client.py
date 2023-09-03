@@ -48,18 +48,18 @@ class MCRouter:
         )
         return cast(RoutesT, response)
 
-    async def remove_route(self, route: str):
+    async def _remove_route(self, route: str):
         await self._send_request("DELETE", f"routes/{route}")
 
-    async def remove_all_routes(self):
+    async def _remove_all_routes(self):
         all_routes = await self.get_all_routes()
         tasks = list[Awaitable[None]]()
         for route in all_routes.keys():
-            tasks.append(self.remove_route(route))
+            tasks.append(self._remove_route(route))
 
         await asyncio.gather(*tasks)
 
-    async def add_route(self, route: str, backend: str):
+    async def _add_route(self, route: str, backend: str):
         await self._send_request(
             "POST",
             "routes",
@@ -67,13 +67,13 @@ class MCRouter:
             json=RoutePoseDataT(serverAddress=route, backend=backend),
         )
 
-    async def add_routes(self, routes: RoutesT):
+    async def _add_routes(self, routes: RoutesT):
         tasks = list[Awaitable[None]]()
         for route, backend in routes.items():
-            tasks.append(self.add_route(route, backend))
+            tasks.append(self._add_route(route, backend))
 
         await asyncio.gather(*tasks)
 
     async def override_routes(self, routes: RoutesT):
-        await self.remove_all_routes()
-        await self.add_routes(routes)
+        await self._remove_all_routes()
+        await self._add_routes(routes)

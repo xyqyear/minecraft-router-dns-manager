@@ -164,15 +164,21 @@ class MCDNSClient:
         async with self._dns_update_lock:
             await self._remove_relevent_records()
             await self._dns_client.add_records(self._generate_records())
+    
+    async def pull_addresses(self) -> AddressesT:
+        await self.pull()
+        return self._addresses
 
     async def set_addresses(self, addresses: AddressesT):
+        """
+        the caller should call push() after calling this function
+            in order to sync the dns record
+        """
         self._addresses = addresses
-        await self.push()
-
-    async def set_address(self, address_name: str, address: AddressInfoT):
-        self._addresses[address_name] = address
-        await self.push()
 
     async def set_server_list(self, server_list: list[str]):
+        """
+        the caller should call push() after calling this function
+            in order to sync the dns record
+        """
         self._server_list = server_list
-        await self.push()
