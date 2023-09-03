@@ -1,0 +1,22 @@
+dns:
+  # only supports dnspod for now
+  type: dnspod
+  params:
+    domain: example.com
+    id: secretid
+    key: secretkey
+
+natmap_openwrt_sync_baseurl: http://localhost:8090
+minecraft_docker_dir_watcher_baseurl: http://localhost:8091
+
+addresses:
+  "*":
+    type: natmap
+    params:
+      internal_port: 25565
+  "backup":
+    type: manual
+    params:
+      record_type: "CNAME"
+      value: "backupdomain.com"
+      port: 25565
