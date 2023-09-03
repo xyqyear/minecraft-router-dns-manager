@@ -9,6 +9,8 @@ dns:
 natmap_openwrt_sync_baseurl: http://localhost:8090
 minecraft_docker_dir_watcher_baseurl: http://localhost:8091
 
+managed_sub_domain: "mc"
+
 addresses:
   "*":
     type: natmap
