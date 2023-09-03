@@ -52,9 +52,6 @@ class MCDNSClient:
 
         self._dns_update_lock = asyncio.Lock()
 
-    async def init(self):
-        await self.pull()
-
     def _parse_srv_record(self, record: ReturnRecordT) -> SrvParsedResultT:
         """
         parse the srv record value to a tuple of (target, port)
@@ -164,10 +161,6 @@ class MCDNSClient:
         async with self._dns_update_lock:
             await self._remove_relevent_records()
             await self._dns_client.add_records(self._generate_records())
-    
-    async def pull_addresses(self) -> AddressesT:
-        await self.pull()
-        return self._addresses
 
     async def set_addresses(self, addresses: AddressesT):
         """
@@ -176,9 +169,23 @@ class MCDNSClient:
         """
         self._addresses = addresses
 
+    async def get_addresses(self) -> AddressesT:
+        """
+        the caller should call pull() before calling this function
+            in order to sync the dns record
+        """
+        return self._addresses
+
     async def set_server_list(self, server_list: list[str]):
         """
         the caller should call push() after calling this function
             in order to sync the dns record
         """
         self._server_list = server_list
+
+    async def get_server_list(self) -> list[str]:
+        """
+        the caller should call pull() before calling this function
+            in order to sync the dns record
+        """
+        return self._server_list
