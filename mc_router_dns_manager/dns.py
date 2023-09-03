@@ -1,0 +1,44 @@
+from typing import TypedDict
+
+RecordIdT = int
+RecordIdListT = list[RecordIdT]
+
+
+class ReturnRecordT(TypedDict):
+    sub_domain: str
+    value: str
+    record_id: int
+    record_type: str
+    ttl: int
+
+
+class AddRecordT(TypedDict):
+    sub_domain: str
+    value: str
+    record_type: str
+    ttl: int
+
+
+RecordListT = list[ReturnRecordT]
+AddRecordListT = list[AddRecordT]
+
+
+class DNSClient:
+    """
+    abstract class for dns client
+    """
+
+    def get_domain(self) -> str:
+        ...
+
+    async def list_records(self) -> RecordListT:
+        ...
+
+    async def update_records_value(self, record_ids: RecordIdListT, value: str):
+        ...
+
+    async def remove_records(self, record_ids: RecordIdListT):
+        ...
+
+    async def add_records(self, records: AddRecordListT):
+        ...

@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "minecraft-router-dns-manager"
+version = "0.0.0-dev"
+description = "a tool that automatically manages mc-router and dns records for minecraft docker"
+authors = ["xyqyear <xyqyear@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "mc_router_dns_manager" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.8.5"
+tencentcloud-sdk-python = "^3.0.973"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.1"
+black = "^23.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
