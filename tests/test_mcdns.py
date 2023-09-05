@@ -10,7 +10,7 @@ from mc_router_dns_manager.dns import (
     RecordListT,
     ReturnRecordT,
 )
-from mc_router_dns_manager.mcdns import AddressesT, AddressInfoT, MCDNS
+from mc_router_dns_manager.mcdns import MCDNS, AddressesT, AddressInfoT
 
 
 class DummyDNSClient(DNSClient):
