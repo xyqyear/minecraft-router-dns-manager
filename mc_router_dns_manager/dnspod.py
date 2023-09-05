@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Callable, Literal, Protocol, TypedDict, cast
+from typing import Callable, Literal, Protocol, TypedDict, cast, NamedTuple
 
 from tencentcloud.common import credential  # type: ignore
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import (  # type: ignore
@@ -26,7 +26,7 @@ class DNSPodSDKResponseT(Protocol):
 DNSPodSDKCallFuncT = Callable[[DNSPodSDKRequestT], DNSPodSDKResponseT]
 
 
-class DNSPodRequestInfoT(TypedDict):
+class DNSPodRequestInfoT(NamedTuple):
     constructor: type[DNSPodSDKRequestT]
     api_call: DNSPodSDKCallFuncT
 
@@ -119,27 +119,27 @@ class DNSPodClient(DNSClient):
         self._client = dnspod_client.DnspodClient(cred, "", clientProfile)
 
         # don't know how to type client.xxx
-        self._request_mapping: dict[str, DNSPodRequestInfoT] = {
-            "DescribeDomainList": {
-                "constructor": models.DescribeDomainListRequest,
-                "api_call": self._client.DescribeDomainList,  # type: ignore
-            },
-            "DescribeRecordList": {
-                "constructor": models.DescribeRecordListRequest,
-                "api_call": self._client.DescribeRecordList,  # type: ignore
-            },
-            "ModifyRecordBatch": {
-                "constructor": models.ModifyRecordBatchRequest,
-                "api_call": self._client.ModifyRecordBatch,  # type: ignore
-            },
-            "DeleteRecordBatch": {
-                "constructor": models.DeleteRecordBatchRequest,
-                "api_call": self._client.DeleteRecordBatch,  # type: ignore
-            },
-            "CreateRecordBatch": {
-                "constructor": models.CreateRecordBatchRequest,
-                "api_call": self._client.CreateRecordBatch,  # type: ignore
-            },
+        self._request_mapping = {
+            "DescribeDomainList": DNSPodRequestInfoT(
+                constructor=models.DescribeDomainListRequest,
+                api_call=self._client.DescribeDomainList,  # type: ignore
+            ),
+            "DescribeRecordList": DNSPodRequestInfoT(
+                constructor=models.DescribeRecordListRequest,
+                api_call=self._client.DescribeRecordList,  # type: ignore
+            ),
+            "ModifyRecordBatch": DNSPodRequestInfoT(
+                constructor=models.ModifyRecordBatchRequest,
+                api_call=self._client.ModifyRecordBatch,  # type: ignore
+            ),
+            "DeleteRecordBatch": DNSPodRequestInfoT(
+                constructor=models.DeleteRecordBatchRequest,
+                api_call=self._client.DeleteRecordBatch,  # type: ignore
+            ),
+            "CreateRecordBatch": DNSPodRequestInfoT(
+                constructor=models.CreateRecordBatchRequest,
+                api_call=self._client.CreateRecordBatch,  # type: ignore
+            ),
         }
 
         self._domain_id: int
@@ -177,14 +177,12 @@ class DNSPodClient(DNSClient):
         self, request_name: DNSPodAPIRequestNameT, params: DNSPodAPIRequestParamsT
     ) -> DNSPodAPIResponseT:
         request_info = self._request_mapping[request_name]
-        constructor = request_info["constructor"]
-        api_call = request_info["api_call"]
 
-        req = constructor()
+        req = request_info.constructor()
         req.from_json_string(json.dumps(params))
 
         loop = asyncio.get_running_loop()
-        response_object = await loop.run_in_executor(None, api_call, req)
+        response_object = await loop.run_in_executor(None, request_info.api_call, req)
 
         response_json = response_object.to_json_string()
         response = json.loads(response_json)
@@ -272,10 +270,10 @@ class DNSPodClient(DNSClient):
         """
         dnspod_add_records = [
             DNSPodAddRecordT(
-                SubDomain=record["sub_domain"],
-                RecordType=record["record_type"],
-                Value=record["value"],
-                TTL=record["ttl"],
+                SubDomain=record.sub_domain,
+                RecordType=record.record_type,
+                Value=record.value,
+                TTL=record.ttl,
             )
             for record in records
         ]

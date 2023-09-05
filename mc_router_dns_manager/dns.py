@@ -1,10 +1,10 @@
-from typing import TypedDict
+from typing import NamedTuple
 
 RecordIdT = int
 RecordIdListT = list[RecordIdT]
 
 
-class ReturnRecordT(TypedDict):
+class ReturnRecordT(NamedTuple):
     sub_domain: str
     value: str
     record_id: int
@@ -12,7 +12,7 @@ class ReturnRecordT(TypedDict):
     ttl: int
 
 
-class AddRecordT(TypedDict):
+class AddRecordT(NamedTuple):
     sub_domain: str
     value: str
     record_type: str
