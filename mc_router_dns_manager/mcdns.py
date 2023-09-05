@@ -44,7 +44,7 @@ the `address_name` is another whole mess
 """
 
 
-class MCDNSClient:
+class MCDNS:
     def __init__(self, dns_client: DNSClient, managed_sub_domain: str, ttl: int = 600):
         self._dns_client = dns_client
         self._managed_sub_domain = managed_sub_domain

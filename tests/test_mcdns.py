@@ -10,7 +10,7 @@ from mc_router_dns_manager.dns import (
     RecordListT,
     ReturnRecordT,
 )
-from mc_router_dns_manager.mcdns import AddressesT, AddressInfoT, MCDNSClient
+from mc_router_dns_manager.mcdns import AddressesT, AddressInfoT, MCDNS
 
 
 class DummyDNSClient(DNSClient):
@@ -285,7 +285,7 @@ async def test_pull(
     dns_client = DummyDNSClient("example.com")
     await dns_client.add_records(record_list)
 
-    mcdns = MCDNSClient(dns_client, "mc")
+    mcdns = MCDNS(dns_client, "mc")
     await mcdns.pull()
 
     assert mcdns.get_addresses() == expected_addresses
@@ -306,7 +306,7 @@ async def test_push(
     dns_client = DummyDNSClient("example.com")
     await dns_client.add_records(original_record_list)
 
-    mcdns = MCDNSClient(dns_client, "mc")
+    mcdns = MCDNS(dns_client, "mc")
     mcdns.set_addresses(addresses)
     mcdns.set_server_list(server_list)
     await mcdns.push()
