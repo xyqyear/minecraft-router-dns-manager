@@ -47,6 +47,7 @@ class Monitorer:
         self._update_lock = asyncio.Lock()
 
     def _queue_update(self):
+        logging.info("queueing update from ws event")
         self._update_queue += 1
 
     async def _update(self):
@@ -56,6 +57,7 @@ class Monitorer:
         if remote_pull_result == local_pull_result:
             return
         else:
+            logging.info(f"pushing changes: {local_pull_result}")
             await self._remote.push(
                 local_pull_result.addresses, local_pull_result.servers
             )
