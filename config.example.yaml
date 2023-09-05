@@ -32,3 +32,4 @@ addresses:
       port: 25565
 
 poll_interval: 15
+logging_level: INFO

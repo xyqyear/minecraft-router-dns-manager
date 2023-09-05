@@ -50,6 +50,7 @@ class ConfigT(TypedDict):
     dns_ttl: int
     addresses: dict[str, AddressConfigT]
     poll_interval: int
+    logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 yaml = YAML(typ="safe")
