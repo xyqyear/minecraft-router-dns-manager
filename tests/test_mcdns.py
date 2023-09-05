@@ -19,6 +19,9 @@ class DummyDNSClient(DNSClient):
         self._records = dict[int, AddRecordT]()
         self._next_id = 0
 
+    def is_initialized(self) -> bool:
+        return True
+
     def _get_next_id(self) -> int:
         self._next_id += 1
         return self._next_id
@@ -286,10 +289,10 @@ async def test_pull(
     await dns_client.add_records(record_list)
 
     mcdns = MCDNS(dns_client, "mc")
-    await mcdns.pull()
+    pulled_addresses, pulled_server_list = await mcdns.pull()
 
-    assert mcdns.get_addresses() == expected_addresses
-    assert set(mcdns.get_server_list()) == set(expected_server_list)
+    assert pulled_addresses == expected_addresses
+    assert set(pulled_server_list) == set(expected_server_list)
 
 
 @pytest.mark.parametrize(
@@ -307,9 +310,7 @@ async def test_push(
     await dns_client.add_records(original_record_list)
 
     mcdns = MCDNS(dns_client, "mc")
-    mcdns.set_addresses(addresses)
-    mcdns.set_server_list(server_list)
-    await mcdns.push()
+    await mcdns.push(addresses, server_list)
 
     record_list = await dns_client.list_records()
     record_list_with_out_id = [

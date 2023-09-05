@@ -19,6 +19,11 @@ class SrvParsedResultT(NamedTuple):
     port: int
 
 
+class MCDNSPullResultT(NamedTuple):
+    addresses: AddressesT
+    server_list: list[str]
+
+
 """
 as for the `sub_domain` confusion,
 
@@ -45,12 +50,12 @@ the `address_name` is another whole mess
 
 
 class MCDNS:
-    def __init__(self, dns_client: DNSClient, managed_sub_domain: str, dns_ttl: int = 600):
+    def __init__(
+        self, dns_client: DNSClient, managed_sub_domain: str, dns_ttl: int = 600
+    ):
         self._dns_client = dns_client
         self._managed_sub_domain = managed_sub_domain
         self._dns_ttl = dns_ttl
-        self._addresses = AddressesT()
-        self._server_list = list[str]()
 
         self._dns_update_lock = asyncio.Lock()
 
@@ -110,35 +115,53 @@ class MCDNS:
             server_name=server_name, address_name=address_name, port=int(port)
         )
 
-    def _from_record_list(self, record_list: RecordListT):
-        self._server_list.clear()
-        self._addresses.clear()
+    async def pull(self) -> MCDNSPullResultT:
+        """
+        pull the address list from the dns record
+        :raises Exception: if failed to get records from dns client
+        """
+        if not self._dns_client.is_initialized():
+            await self._dns_client.init()
+        record_list = await self._get_relevent_records()
+
+        addresses = AddressesT()
+        server_list = list[str]()
 
         port_map = dict[str, int]()
         for record in record_list:
             if record.record_type == "SRV":
                 parsed_result = self._parse_srv_record(record)
-                if parsed_result.server_name not in self._server_list:
-                    self._server_list.append(parsed_result.server_name)
+                if parsed_result.server_name not in server_list:
+                    server_list.append(parsed_result.server_name)
                 port_map[parsed_result.address_name] = parsed_result.port
             # if it's not a srv record, then it must be a A/AAAA/CNAME record
             # we do this to just make pylance happy
             elif record.record_type in ("A", "AAAA", "CNAME"):
                 address_name = record.sub_domain.split(".")[-2]
-                self._addresses[address_name] = AddressInfoT(
+                addresses[address_name] = AddressInfoT(
                     type=record.record_type,
                     host=record.value,
                     port=0,
                 )
 
-        for address_name in self._addresses.keys():
-            self._addresses[address_name] = self._addresses[address_name]._replace(
+        for address_name in addresses.keys():
+            addresses[address_name] = addresses[address_name]._replace(
                 port=port_map[address_name]
             )
 
-    def _to_record_list(self) -> AddRecordListT:
+        return MCDNSPullResultT(addresses, server_list)
+
+    async def push(self, addresses: AddressesT, server_list: list[str]):
+        """
+        sync the dns record to the address list
+        :raises Exception: if failed to update dns record
+        """
+        # we want to make sure only one push is running at the same time
+        if not (addresses and server_list):
+            return
+
         record_list = AddRecordListT()
-        for address_name, address_info in self._addresses.items():
+        for address_name, address_info in addresses.items():
             if address_name == "*":
                 sub_domain_base = f"{self._managed_sub_domain}"
             else:
@@ -151,7 +174,7 @@ class MCDNS:
                     ttl=self._dns_ttl,
                 )
             )
-            for server_name in self._server_list:
+            for server_name in server_list:
                 record_list.append(
                     AddRecordT(
                         sub_domain=f"_minecraft._tcp.{server_name}.{sub_domain_base}",
@@ -161,53 +184,6 @@ class MCDNS:
                     )
                 )
 
-        return record_list
-
-    async def pull(self):
-        """
-        pull the address list from the dns record
-        :raises Exception: if failed to get records from dns client
-        """
-        if not self._dns_client.is_initialized():
-            await self._dns_client.init()
-        record_list = await self._get_relevent_records()
-        self._from_record_list(record_list)
-
-    async def push(self):
-        """
-        sync the dns record to the address list
-        :raises Exception: if failed to update dns record
-        """
-        # we want to make sure only one push is running at the same time
         async with self._dns_update_lock:
             await self._remove_relevent_records()
-            if self._server_list and self._addresses:
-                await self._dns_client.add_records(self._to_record_list())
-
-    def set_addresses(self, addresses: AddressesT):
-        """
-        the caller should call push() after calling this function
-            in order to sync the dns record
-        """
-        self._addresses = addresses
-
-    def get_addresses(self) -> AddressesT:
-        """
-        the caller should call pull() before calling this function
-            in order to sync the dns record
-        """
-        return self._addresses
-
-    def set_server_list(self, server_list: list[str]):
-        """
-        the caller should call push() after calling this function
-            in order to sync the dns record
-        """
-        self._server_list = server_list
-
-    def get_server_list(self) -> list[str]:
-        """
-        the caller should call pull() before calling this function
-            in order to sync the dns record
-        """
-        return self._server_list
+            await self._dns_client.add_records(record_list)

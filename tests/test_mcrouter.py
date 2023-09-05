@@ -2,7 +2,12 @@ from typing import NamedTuple
 
 import pytest
 
-from mc_router_dns_manager.router.mcrouter import AddressNameListT, MCRouter, RoutesT, ServersT
+from mc_router_dns_manager.router.mcrouter import (
+    AddressNameListT,
+    MCRouter,
+    RoutesT,
+    ServersT,
+)
 from mc_router_dns_manager.router.mcrouter_client import MCRouterClient
 
 
@@ -66,9 +71,7 @@ async def test_push(
     dummy_router = DummyMCRouterClient("http://localhost:5000")
     mcrouter = MCRouter(dummy_router, "example.com", "mc")
 
-    mcrouter.set_address_name_list(address_name_list)
-    mcrouter.set_servers(servers)
-    await mcrouter.push()
+    await mcrouter.push(address_name_list, servers)
 
     routes = await dummy_router.get_routes()
     assert routes == expected_routes
@@ -87,7 +90,7 @@ async def test_pull(
     await dummy_router.override_routes(routes)
     mcrouter = MCRouter(dummy_router, "example.com", "mc")
 
-    await mcrouter.pull()
+    pulled_address_name_list, pulled_servers = await mcrouter.pull()
 
-    assert set(mcrouter.get_address_name_list()) == set(expected_address_name_list)
-    assert mcrouter.get_servers() == expected_servers
+    assert set(pulled_address_name_list) == set(expected_address_name_list)
+    assert pulled_servers == expected_servers

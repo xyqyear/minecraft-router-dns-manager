@@ -18,6 +18,11 @@ class ParsedServerAddressT(NamedTuple):
     server_port: int
 
 
+class MCRouterPullResultT(NamedTuple):
+    address_name_list: AddressNameListT
+    servers: ServersT
+
+
 class MCRouter:
     def __init__(
         self, mc_router_client: BaseMCRouterClient, domain: str, managed_sub_domain: str
@@ -26,18 +31,16 @@ class MCRouter:
         self._domain = domain
         self._managed_sub_domain = managed_sub_domain
 
-        self._address_name_list = AddressNameListT()
-        self._servers = ServersT()
-
-    def _from_routes(self, routes: RoutesT):
+    async def pull(self) -> MCRouterPullResultT:
         """
-        parse server_address to server_name and server_port
+        pull routes from mc-router
+        :raises Exception: if failed to get routes from mc-router, raised by aiohttp
         """
-        self._address_name_list.clear()
-        self._servers.clear()
+        routes = await self._client.get_routes()
 
+        address_name_list = AddressNameListT()
+        servers = ServersT()
         for server_address, backend in routes.items():
-            # parse
             if ":" in backend:
                 _, server_port = backend.split(":")
                 server_port = int(server_port)
@@ -53,19 +56,21 @@ class MCRouter:
             else:
                 address_name = server_and_address[1]
 
-            # update self
-            if not address_name in self._address_name_list:
-                self._address_name_list.append(address_name)
-            if not server_name in self._servers:
-                self._servers[server_name] = server_port
+            if not address_name in address_name_list:
+                address_name_list.append(address_name)
+            if not server_name in servers:
+                servers[server_name] = server_port
 
-    def _to_routes(self) -> RoutesT:
+        return MCRouterPullResultT(address_name_list, servers)
+
+    async def push(self, address_name_list: AddressNameListT, servers: ServersT):
         """
-        construct routes from self._servers
+        push routes to mc-router
+        :raises Exception: if failed to get routes from mc-router, raised by aiohttp
         """
         routes = RoutesT()
-        for server_name, server_port in self._servers.items():
-            for address_name in self._address_name_list:
+        for server_name, server_port in servers.items():
+            for address_name in address_name_list:
                 if address_name == "*":
                     sub_domain_base = f"{self._managed_sub_domain}"
                 else:
@@ -73,44 +78,5 @@ class MCRouter:
                 routes[
                     f"{server_name}.{sub_domain_base}.{self._domain}"
                 ] = f"localhost:{server_port}"
-        return routes
 
-    async def pull(self):
-        """
-        pull routes from mc-router
-        :raises Exception: if failed to get routes from mc-router, raised by aiohttp
-        """
-        routes = await self._client.get_routes()
-        self._from_routes(routes)
-
-    async def push(self):
-        """
-        push routes to mc-router
-        :raises Exception: if failed to get routes from mc-router, raised by aiohttp
-        """
-        new_routes = self._to_routes()
-        await self._client.override_routes(new_routes)
-
-    def get_address_name_list(self) -> AddressNameListT:
-        """
-        get address name list
-        """
-        return self._address_name_list
-
-    def set_address_name_list(self, address_name_list: AddressNameListT):
-        """
-        set address name list
-        """
-        self._address_name_list = address_name_list
-
-    def get_servers(self) -> ServersT:
-        """
-        get servers
-        """
-        return self._servers
-
-    def set_servers(self, servers: ServersT):
-        """
-        set servers
-        """
-        self._servers = servers
+        await self._client.override_routes(routes)

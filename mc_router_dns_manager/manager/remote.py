@@ -19,24 +19,18 @@ class Remote:
         self._mc_dns = mc_dns
 
     async def push(self, addresses: AddressesT, servers: ServersT):
-        self._mc_dns.set_addresses(addresses)
-        self._mc_dns.set_server_list(list(servers.keys()))
-
-        self._mc_router.set_address_name_list(list(addresses.keys()))
-        self._mc_router.set_servers(servers)
-
-        await asyncio.gather(self._mc_router.push(), self._mc_dns.push())
+        await asyncio.gather(
+            self._mc_router.push(list(addresses.keys()), servers),
+            self._mc_dns.push(addresses, list(servers.keys())),
+        )
 
     async def pull(self) -> Optional[PullResultT]:
         """
         if dns record isn't consistent with mc-router, return None
         """
-        await asyncio.gather(self._mc_router.pull(), self._mc_dns.pull())
-
-        addresses = self._mc_dns.get_addresses()
-        server_list = self._mc_dns.get_server_list()
-        address_list = self._mc_router.get_address_name_list()
-        servers = self._mc_router.get_servers()
+        (address_list, servers), (addresses, server_list) = await asyncio.gather(
+            self._mc_router.pull(), self._mc_dns.pull()
+        )
 
         if set(address_list) != set(addresses.keys()):
             return None
