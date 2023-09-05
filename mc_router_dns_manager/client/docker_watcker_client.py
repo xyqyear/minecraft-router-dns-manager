@@ -4,7 +4,7 @@ from typing import Awaitable, Callable
 
 import aiohttp
 
-from .router.mcrouter import ServersT
+from ..router.mcrouter import ServersT
 
 
 class DockerWatcherClient:
