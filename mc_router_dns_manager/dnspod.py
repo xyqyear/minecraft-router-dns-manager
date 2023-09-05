@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Callable, Literal, Protocol, TypedDict, cast, NamedTuple
+from typing import Callable, Literal, NamedTuple, Protocol, TypedDict, cast
 
 from tencentcloud.common import credential  # type: ignore
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import (  # type: ignore

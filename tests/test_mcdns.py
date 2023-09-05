@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+import pytest
+
 from mc_router_dns_manager.dns import (
     AddRecordListT,
     AddRecordT,
@@ -9,7 +11,6 @@ from mc_router_dns_manager.dns import (
     ReturnRecordT,
 )
 from mc_router_dns_manager.mcdns import AddressesT, AddressInfoT, MCDNSClient
-import pytest
 
 
 class DummyDNSClient(DNSClient):

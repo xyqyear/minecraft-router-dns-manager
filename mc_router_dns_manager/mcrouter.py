@@ -2,9 +2,9 @@
 wrapper for mc-router client
 """
 
-from .mcrouter_client import MCRouterClient
 from typing import NamedTuple
-from .mcrouter_client import RoutesT
+
+from .mcrouter_client import MCRouterClient, RoutesT
 
 AddressNameListT = list[str]
 
