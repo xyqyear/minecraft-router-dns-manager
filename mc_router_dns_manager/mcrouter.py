@@ -4,7 +4,7 @@ wrapper for mc-router client
 
 from typing import NamedTuple
 
-from .mcrouter_client import MCRouterClient, RoutesT
+from .mcrouter_client import BaseMCRouterClient, RoutesT
 
 AddressNameListT = list[str]
 
@@ -19,8 +19,10 @@ class ParsedServerAddressT(NamedTuple):
 
 
 class MCRouter:
-    def __init__(self, base_url: str, domain: str, managed_sub_domain: str) -> None:
-        self._client = MCRouterClient(base_url)
+    def __init__(
+        self, mc_router_client: BaseMCRouterClient, domain: str, managed_sub_domain: str
+    ) -> None:
+        self._client = mc_router_client
         self._domain = domain
         self._managed_sub_domain = managed_sub_domain
 
@@ -78,7 +80,7 @@ class MCRouter:
         pull routes from mc-router
         :raises Exception: if failed to get routes from mc-router, raised by aiohttp
         """
-        routes = await self._client.get_all_routes()
+        routes = await self._client.get_routes()
         self._from_routes(routes)
 
     async def push(self):

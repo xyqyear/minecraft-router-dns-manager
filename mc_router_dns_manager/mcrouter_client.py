@@ -18,7 +18,18 @@ HeadersT = TypedDict(
 RoutesT = dict[str, str]
 
 
-class MCRouterClient:
+class BaseMCRouterClient:
+    def __init__(self, base_url: str):
+        ...
+
+    async def get_routes(self) -> RoutesT:
+        ...
+
+    async def override_routes(self, routes: RoutesT):
+        ...
+
+
+class MCRouterClient(BaseMCRouterClient):
     def __init__(self, base_url: str) -> None:
         self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
 
@@ -42,7 +53,7 @@ class MCRouterClient:
         if response_str:
             return jsonlib.loads(response_str)
 
-    async def get_all_routes(self) -> RoutesT:
+    async def get_routes(self) -> RoutesT:
         response = await self._send_request(
             "GET", "routes", headers={"Accept": "application/json"}
         )
@@ -52,7 +63,7 @@ class MCRouterClient:
         await self._send_request("DELETE", f"routes/{route}")
 
     async def _remove_all_routes(self):
-        all_routes = await self.get_all_routes()
+        all_routes = await self.get_routes()
         tasks = list[Awaitable[None]]()
         for route in all_routes.keys():
             tasks.append(self._remove_route(route))
