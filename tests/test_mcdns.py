@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 import pytest
 
-from mc_router_dns_manager.dns import (
+from mc_router_dns_manager.dns.dns import (
     AddRecordListT,
     AddRecordT,
     DNSClient,
@@ -10,7 +10,7 @@ from mc_router_dns_manager.dns import (
     RecordListT,
     ReturnRecordT,
 )
-from mc_router_dns_manager.mcdns import MCDNS, AddressesT, AddressInfoT
+from mc_router_dns_manager.dns.mcdns import MCDNS, AddressesT, AddressInfoT
 
 
 class DummyDNSClient(DNSClient):

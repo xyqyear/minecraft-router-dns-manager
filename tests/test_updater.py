@@ -2,14 +2,14 @@ from typing import NamedTuple
 
 import pytest
 
-from mc_router_dns_manager.mcdns import (
+from mc_router_dns_manager.dns.mcdns import (
     MCDNS,
     AddRecordListT,
     AddRecordT,
     AddressesT,
     AddressInfoT,
 )
-from mc_router_dns_manager.mcrouter import MCRouter, RoutesT, ServersT
+from mc_router_dns_manager.router.mcrouter import MCRouter, RoutesT, ServersT
 from mc_router_dns_manager.updater import Updater
 
 from .test_mcdns import DummyDNSClient

@@ -2,8 +2,8 @@ from typing import NamedTuple
 
 import pytest
 
-from mc_router_dns_manager.mcrouter import AddressNameListT, MCRouter, RoutesT, ServersT
-from mc_router_dns_manager.mcrouter_client import MCRouterClient
+from mc_router_dns_manager.router.mcrouter import AddressNameListT, MCRouter, RoutesT, ServersT
+from mc_router_dns_manager.router.mcrouter_client import MCRouterClient
 
 
 class DummyMCRouterClient(MCRouterClient):

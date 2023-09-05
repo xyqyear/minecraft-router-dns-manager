@@ -3,8 +3,8 @@ Responsibility: update mc-router and dns records with relevant information
 """
 import asyncio
 
-from .mcdns import MCDNS, AddressesT
-from .mcrouter import MCRouter, ServersT
+from .dns.mcdns import MCDNS, AddressesT
+from .router.mcrouter import MCRouter, ServersT
 
 
 class Updater:
