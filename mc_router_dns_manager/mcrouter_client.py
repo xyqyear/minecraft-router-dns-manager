@@ -18,7 +18,7 @@ HeadersT = TypedDict(
 RoutesT = dict[str, str]
 
 
-class MCRouter:
+class MCRouterClient:
     def __init__(self, base_url: str) -> None:
         self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
 
@@ -76,4 +76,5 @@ class MCRouter:
 
     async def override_routes(self, routes: RoutesT):
         await self._remove_all_routes()
-        await self._add_routes(routes)
+        if routes:
+            await self._add_routes(routes)
