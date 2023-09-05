@@ -49,6 +49,7 @@ class ConfigT(TypedDict):
     managed_sub_domain: str
     dns_ttl: int
     addresses: dict[str, AddressConfigT]
+    poll_interval: int
 
 
 yaml = YAML(typ="safe")

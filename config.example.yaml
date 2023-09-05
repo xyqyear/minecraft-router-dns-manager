@@ -30,3 +30,5 @@ addresses:
       record_type: "CNAME"
       value: "backupdomain.com"
       port: 25565
+
+poll_interval: 15
