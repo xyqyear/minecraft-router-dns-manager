@@ -3,6 +3,19 @@ from typing import NamedTuple
 import pytest
 
 from mc_router_dns_manager.mcrouter import AddressNameListT, MCRouter, RoutesT, ServersT
+from mc_router_dns_manager.mcrouter_client import MCRouterClient
+
+
+class DummyMCRouterClient(MCRouterClient):
+    def __init__(self, base_url: str):
+        self._base_url = base_url
+        self._routes = RoutesT()
+
+    async def get_routes(self) -> RoutesT:
+        return self._routes
+
+    async def override_routes(self, routes: RoutesT):
+        self._routes = routes
 
 
 class RoutesTestPairT(NamedTuple):
@@ -11,7 +24,7 @@ class RoutesTestPairT(NamedTuple):
     routes: RoutesT
 
 
-to_routes_test_pairs = [
+push_test_pairs = [
     RoutesTestPairT(
         address_name_list=["*", "backup", "relay"],
         servers={"vanilla": 25565, "gtnh": 25566},
@@ -45,34 +58,36 @@ to_routes_test_pairs = [
 ]
 
 
-@pytest.mark.parametrize(
-    "address_name_list, servers, expected_routes", to_routes_test_pairs
-)
+@pytest.mark.parametrize("address_name_list, servers, expected_routes", push_test_pairs)
 @pytest.mark.asyncio
-async def test_to_routes(
+async def test_push(
     address_name_list: AddressNameListT, servers: ServersT, expected_routes: RoutesT
 ):
-    mcrouter = MCRouter("http://localhost:5000", "example.com", "mc")
+    dummy_router = DummyMCRouterClient("http://localhost:5000")
+    mcrouter = MCRouter(dummy_router, "example.com", "mc")
 
     mcrouter.set_address_name_list(address_name_list)
     mcrouter.set_servers(servers)
+    await mcrouter.push()
 
-    routes = mcrouter._to_routes()  # type: ignore
+    routes = await dummy_router.get_routes()
     assert routes == expected_routes
 
 
 @pytest.mark.parametrize(
-    "expected_address_name_list, expected_servers, routes", to_routes_test_pairs
+    "expected_address_name_list, expected_servers, routes", push_test_pairs
 )
 @pytest.mark.asyncio
-async def test_from_routes(
+async def test_pull(
     expected_address_name_list: AddressNameListT,
     expected_servers: ServersT,
     routes: RoutesT,
 ):
-    mcrouter = MCRouter("http://localhost:5000", "example.com", "mc")
+    dummy_router = DummyMCRouterClient("http://localhost:5000")
+    await dummy_router.override_routes(routes)
+    mcrouter = MCRouter(dummy_router, "example.com", "mc")
 
-    mcrouter._from_routes(routes)  # type: ignore
+    await mcrouter.pull()
 
     assert set(mcrouter.get_address_name_list()) == set(expected_address_name_list)
     assert mcrouter.get_servers() == expected_servers
