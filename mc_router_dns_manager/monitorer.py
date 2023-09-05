@@ -18,11 +18,11 @@ import logging
 
 from .client.docker_watcher_client import DockerWatcherClient
 from .client.natmap_monitor_client import NatmapMonitorClient
+from .config import config
 from .dns.mcdns import MCDNS
 from .manager.local import Local
 from .manager.remote import Remote
 from .router.mcrouter import MCRouter
-from .config import config
 
 
 class Monitorer:
