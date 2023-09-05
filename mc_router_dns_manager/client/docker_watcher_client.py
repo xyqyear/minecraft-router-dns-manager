@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Awaitable, Callable
+from typing import Callable
 
 import aiohttp
 
@@ -19,7 +19,7 @@ class DockerWatcherClient:
         if not self._url.endswith("/"):
             self._url += "/"
 
-    async def listen_to_ws(self, on_message: Callable[..., Awaitable[None]]):
+    async def listen_to_ws(self, on_message: Callable[..., None]):
         """
         should be called in conjunction with asyncio.create_task,
         since it's a infinite loop
@@ -29,7 +29,7 @@ class DockerWatcherClient:
                 async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
-                            await on_message()
+                            on_message()
             except Exception as e:
                 logging.warning(f"error while connecting docker watcher with ws: {e}")
             await asyncio.sleep(self._timeout)

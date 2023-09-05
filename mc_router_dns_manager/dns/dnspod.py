@@ -147,6 +147,9 @@ class DNSPodClient(DNSClient):
     def get_domain(self) -> str:
         return self._domain
 
+    def is_initialized(self) -> bool:
+        return hasattr(self, "_domain_id")
+
     async def init(self):
         """
         This function must be called since some apis need domain id
@@ -222,20 +225,25 @@ class DNSPodClient(DNSClient):
                 "Domain": self._domain,
             },
         )
-
         response = cast(DescribeRecordListResponseT, response)
-
         record_list = response["RecordList"]
-        return [
-            ReturnRecordT(
-                sub_domain=record["Name"],
-                value=record["Value"],
-                record_id=record["RecordId"],
-                record_type=record["Type"],
-                ttl=record["TTL"],
+
+        sanitized_record_list = RecordListT()
+        for record in record_list:
+            value = record["Value"]
+            if record["Type"] in ("SRV", "CNAME") and value.endswith("."):
+                value = value[:-1]
+            sanitized_record_list.append(
+                ReturnRecordT(
+                    sub_domain=record["Name"],
+                    value=value,
+                    record_id=record["RecordId"],
+                    record_type=record["Type"],
+                    ttl=record["TTL"],
+                )
             )
-            for record in record_list
-        ]
+
+        return sanitized_record_list
 
     async def update_records_value(self, record_ids: RecordIdListT, value: str):
         """

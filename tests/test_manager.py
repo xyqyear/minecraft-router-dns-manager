@@ -9,22 +9,22 @@ from mc_router_dns_manager.dns.mcdns import (
     AddressesT,
     AddressInfoT,
 )
+from mc_router_dns_manager.manager.remote import Remote
 from mc_router_dns_manager.router.mcrouter import MCRouter, RoutesT, ServersT
-from mc_router_dns_manager.updater import Updater
 
 from .test_mcdns import DummyDNSClient
 from .test_mcrouter import DummyMCRouterClient
 
 
-class UpdaterTestPairT(NamedTuple):
+class RemoteTestPairT(NamedTuple):
     addresses: AddressesT
     servers: ServersT
     expected_routes: RoutesT
     expected_record_list: AddRecordListT
 
 
-updater_test_pairs = [
-    UpdaterTestPairT(
+remote_test_pairs = [
+    RemoteTestPairT(
         addresses={
             "*": AddressInfoT(
                 type="A",
@@ -33,12 +33,12 @@ updater_test_pairs = [
             ),
             "backup": AddressInfoT(
                 type="CNAME",
-                host="domain2.com.",
+                host="domain2.com",
                 port=22222,
             ),
             "hk": AddressInfoT(
                 type="CNAME",
-                host="domain3.com.",
+                host="domain3.com",
                 port=33333,
             ),
         },
@@ -63,49 +63,49 @@ updater_test_pairs = [
             ),
             AddRecordT(
                 sub_domain="*.backup.mc",
-                value="domain2.com.",
+                value="domain2.com",
                 record_type="CNAME",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="*.hk.mc",
-                value="domain3.com.",
+                value="domain3.com",
                 record_type="CNAME",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.vanilla.mc",
-                value="0 5 11111 vanilla.mc.example.com.",
+                value="0 5 11111 vanilla.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.vanilla.backup.mc",
-                value="0 5 22222 vanilla.backup.mc.example.com.",
+                value="0 5 22222 vanilla.backup.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.vanilla.hk.mc",
-                value="0 5 33333 vanilla.hk.mc.example.com.",
+                value="0 5 33333 vanilla.hk.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.gtnh.mc",
-                value="0 5 11111 gtnh.mc.example.com.",
+                value="0 5 11111 gtnh.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.gtnh.backup.mc",
-                value="0 5 22222 gtnh.backup.mc.example.com.",
+                value="0 5 22222 gtnh.backup.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
             AddRecordT(
                 sub_domain="_minecraft._tcp.gtnh.hk.mc",
-                value="0 5 33333 gtnh.hk.mc.example.com.",
+                value="0 5 33333 gtnh.hk.mc.example.com",
                 record_type="SRV",
                 ttl=600,
             ),
@@ -115,10 +115,10 @@ updater_test_pairs = [
 
 
 @pytest.mark.parametrize(
-    "addresses, servers, expected_routes, expected_record_list", updater_test_pairs
+    "addresses, servers, expected_routes, expected_record_list", remote_test_pairs
 )
 @pytest.mark.asyncio
-async def test_push(
+async def test_remote_push(
     addresses: AddressesT,
     servers: ServersT,
     expected_routes: RoutesT,
@@ -128,10 +128,10 @@ async def test_push(
 
     mc_router_client = DummyMCRouterClient("http://localhost:5000")
 
-    updater = Updater(
+    remote = Remote(
         MCRouter(mc_router_client, "example.com", "mc"), MCDNS(dns_client, "mc")
     )
-    await updater.push(addresses, servers)
+    await remote.push(addresses, servers)
 
     record_list = await dns_client.list_records()
     record_list_with_out_id = [
@@ -147,3 +147,29 @@ async def test_push(
 
     routes = await mc_router_client.get_routes()
     assert routes == expected_routes
+
+
+@pytest.mark.parametrize(
+    "expected_addresses, expected_servers, routes, record_list", remote_test_pairs
+)
+@pytest.mark.asyncio
+async def test_remote_pull(
+    expected_addresses: AddressesT,
+    expected_servers: ServersT,
+    routes: RoutesT,
+    record_list: AddRecordListT,
+):
+    dns_client = DummyDNSClient("example.com")
+    mc_router_client = DummyMCRouterClient("http://localhost:5000")
+
+    remote = Remote(
+        MCRouter(mc_router_client, "example.com", "mc"), MCDNS(dns_client, "mc")
+    )
+
+    await dns_client.add_records(record_list)
+    await mc_router_client.override_routes(routes)
+
+    pull_result = await remote.pull()
+    assert pull_result != None
+    assert pull_result.addresses == expected_addresses
+    assert pull_result.servers == expected_servers

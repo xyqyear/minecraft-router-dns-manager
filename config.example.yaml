@@ -6,10 +6,18 @@ dns:
     id: secretid
     key: secretkey
 
-natmap_openwrt_sync_baseurl: http://localhost:8090
-minecraft_docker_dir_watcher_baseurl: http://localhost:8091
+mc_router_baseurl: http://localhost:26666
+
+natmap_monitor:
+  enabled: true
+  baseurl: http://localhost:8090
+docker_watcher:
+  enabled: true
+  baseurl: http://localhost:8091
 
 managed_sub_domain: "mc"
+
+dns_ttl: 600
 
 addresses:
   "*":

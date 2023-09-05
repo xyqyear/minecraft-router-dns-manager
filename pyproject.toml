@@ -10,6 +10,7 @@ packages = [{ include = "mc_router_dns_manager" }]
 python = "^3.11"
 aiohttp = "^3.8.5"
 tencentcloud-sdk-python = "^3.0.973"
+ruamel-yaml = "^0.17.32"
 
 
 [tool.poetry.group.dev.dependencies]

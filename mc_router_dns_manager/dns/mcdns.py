@@ -45,10 +45,10 @@ the `address_name` is another whole mess
 
 
 class MCDNS:
-    def __init__(self, dns_client: DNSClient, managed_sub_domain: str, ttl: int = 600):
+    def __init__(self, dns_client: DNSClient, managed_sub_domain: str, dns_ttl: int = 600):
         self._dns_client = dns_client
         self._managed_sub_domain = managed_sub_domain
-        self._ttl = ttl
+        self._dns_ttl = dns_ttl
         self._addresses = AddressesT()
         self._server_list = list[str]()
 
@@ -91,7 +91,7 @@ class MCDNS:
         self._dns_client = dns_client
 
     def set_ttl(self, ttl: int):
-        self._ttl = ttl
+        self._dns_ttl = ttl
 
     def _parse_srv_record(self, record: ReturnRecordT) -> SrvParsedResultT:
         """
@@ -148,16 +148,16 @@ class MCDNS:
                     sub_domain=f"*.{sub_domain_base}",
                     value=address_info.host,
                     record_type=address_info.type,
-                    ttl=self._ttl,
+                    ttl=self._dns_ttl,
                 )
             )
             for server_name in self._server_list:
                 record_list.append(
                     AddRecordT(
                         sub_domain=f"_minecraft._tcp.{server_name}.{sub_domain_base}",
-                        value=f"0 5 {address_info.port} {server_name}.{sub_domain_base}.{self._dns_client.get_domain()}.",
+                        value=f"0 5 {address_info.port} {server_name}.{sub_domain_base}.{self._dns_client.get_domain()}",
                         record_type="SRV",
-                        ttl=self._ttl,
+                        ttl=self._dns_ttl,
                     )
                 )
 
@@ -168,6 +168,8 @@ class MCDNS:
         pull the address list from the dns record
         :raises Exception: if failed to get records from dns client
         """
+        if not self._dns_client.is_initialized():
+            await self._dns_client.init()
         record_list = await self._get_relevent_records()
         self._from_record_list(record_list)
 
