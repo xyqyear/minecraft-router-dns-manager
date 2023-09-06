@@ -145,9 +145,10 @@ class MCDNS:
                 )
 
         for address_name in addresses.keys():
-            addresses[address_name] = addresses[address_name]._replace(
-                port=port_map[address_name]
-            )
+            if address_name in port_map:
+                addresses[address_name] = addresses[address_name]._replace(
+                    port=port_map[address_name]
+                )
 
         return MCDNSPullResultT(addresses, server_list)
 
