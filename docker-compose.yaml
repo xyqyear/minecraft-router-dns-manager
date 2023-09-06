@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  natmap-openwrt-sync:
+  minecraft-router-dns-manager:
     image: ghcr.io/xyqyear/minecraft-router-dns-manager
     volumes:
       - ./data:/data
