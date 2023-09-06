@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  natmap-openwrt-sync:
+    image: ghcr.io/xyqyear/minecraft-router-dns-manager
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
