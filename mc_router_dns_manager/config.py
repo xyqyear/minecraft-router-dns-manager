@@ -44,6 +44,7 @@ class AddressConfigT(TypedDict):
 
 class ConfigT(TypedDict):
     dns: DNST
+    mc_router_baseurl: str
     natmap_monitor: NatmapMonitorT
     docker_watcher: DockerWatcherT
     managed_sub_domain: str

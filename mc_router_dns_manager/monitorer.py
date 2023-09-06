@@ -14,12 +14,12 @@ Specifically, when initializing, it should check for changes once
 I think there should also be a queue for events that are not yet processed
 """
 import asyncio
-import logging
+from typing import Optional
 
 from .client.docker_watcher_client import DockerWatcherClient
 from .client.natmap_monitor_client import NatmapMonitorClient
-from .config import config
 from .dns.mcdns import MCDNS
+from .logger import logger
 from .manager.local import Local
 from .manager.remote import Remote
 from .router.mcrouter import MCRouter
@@ -31,7 +31,7 @@ class Monitorer:
         mcdns: MCDNS,
         mcrouter: MCRouter,
         docker_watcher: DockerWatcherClient,
-        natmap_monitor: NatmapMonitorClient,
+        natmap_monitor: Optional[NatmapMonitorClient],
         poll_interval: int,
     ) -> None:
         self._docker_watcher = docker_watcher
@@ -47,17 +47,18 @@ class Monitorer:
         self._update_lock = asyncio.Lock()
 
     def _queue_update(self):
-        logging.info("queueing update from ws event")
+        logger.info("queueing update from ws event")
         self._update_queue += 1
 
     async def _update(self):
+        logger.debug("checking for updates...")
         remote_pull_result, local_pull_result = await asyncio.gather(
             self._remote.pull(), self._local.pull()
         )
         if remote_pull_result == local_pull_result:
             return
         else:
-            logging.info(f"pushing changes: {local_pull_result}")
+            logger.info(f"pushing changes: {local_pull_result}")
             await self._remote.push(
                 local_pull_result.addresses, local_pull_result.servers
             )
@@ -67,7 +68,7 @@ class Monitorer:
             async with self._update_lock:
                 await self._update()
         except Exception as e:
-            logging.warning(f"error while updating: {e}")
+            logger.warning(f"error while updating: {e}")
 
     async def _check_queue_loop(self):
         while True:
@@ -77,15 +78,17 @@ class Monitorer:
             await asyncio.sleep(1)
 
     async def run(self):
+        logger.info("running initial check...")
         while True:
             try:
                 await self._update()
                 break
             except Exception as e:
-                logging.warning(f"error while initializing: {e}")
+                logger.warning(f"error while initializing: {e}")
+        logger.info("initial check done.")
 
         asyncio.create_task(self._docker_watcher.listen_to_ws(self._queue_update))
-        if config["natmap_monitor"]["enabled"]:
+        if self._natmap_monitor:
             asyncio.create_task(self._natmap_monitor.listen_to_ws(self._queue_update))
 
         # the loop for checking ws events
@@ -93,5 +96,5 @@ class Monitorer:
 
         # the loop for polling
         while True:
-            await self._try_update()
             await asyncio.sleep(self._poll_interval)
+            await self._try_update()

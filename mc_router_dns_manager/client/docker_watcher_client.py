@@ -1,9 +1,9 @@
 import asyncio
-import logging
 from typing import Callable
 
 import aiohttp
 
+from ..logger import logger
 from ..router.mcrouter import ServersT
 
 
@@ -29,9 +29,10 @@ class DockerWatcherClient:
                 async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
+                            logger.info(f"received docker message: {msg.json()}")
                             on_message()
             except Exception as e:
-                logging.warning(f"error while connecting docker watcher with ws: {e}")
+                logger.warning(f"error while connecting docker watcher with ws: {e}")
             await asyncio.sleep(self._timeout)
 
     async def get_servers(self) -> ServersT:

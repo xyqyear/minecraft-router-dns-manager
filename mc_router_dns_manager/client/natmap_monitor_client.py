@@ -1,11 +1,11 @@
 import asyncio
-import logging
 from typing import Callable, TypedDict
 
 import aiohttp
 
 from ..config import config
-from ..dns.mcdns import AddressInfoT, AddressesT
+from ..dns.mcdns import AddressesT, AddressInfoT
+from ..logger import logger
 
 
 class MappingValueT(TypedDict):
@@ -35,9 +35,20 @@ class NatmapMonitorClient:
                 async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
-                            on_message()
+                            message: dict[str, MappingValueT] = msg.json()
+                            for (
+                                port
+                            ) in (
+                                self._get_port_to_address_name_mapping_from_config().keys()
+                            ):
+                                if f"tcp:{port}" in message:
+                                    logger.info(
+                                        f"received relevent natmap message: {message}"
+                                    )
+                                    on_message()
+
             except Exception as e:
-                logging.warning(f"error while connecting natmap monitor with ws: {e}")
+                logger.warning(f"error while connecting natmap monitor with ws: {e}")
             await asyncio.sleep(self._timeout)
 
     def _get_port_to_address_name_mapping_from_config(self) -> dict[int, str]:
@@ -59,7 +70,7 @@ class NatmapMonitorClient:
         for port, address_name in port_to_address_name.items():
             protocol_and_port = f"tcp:{port}"
             if protocol_and_port not in mappings:
-                logging.warning(f"port {port} not found in natmap mappings")
+                logger.warning(f"port {port} not found in natmap mappings")
                 continue
 
             mapping = mappings[protocol_and_port]
