@@ -26,6 +26,7 @@ class DockerWatcherClient:
         """
         while True:
             try:
+                logger.info("connecting to docker watcher ws...")
                 async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
@@ -33,6 +34,7 @@ class DockerWatcherClient:
                             on_message()
             except Exception as e:
                 logger.warning(f"error while connecting docker watcher with ws: {e}")
+            logger.info("connection to docker watcher ws closed")
             await asyncio.sleep(self._timeout)
 
     async def get_servers(self) -> ServersT:
