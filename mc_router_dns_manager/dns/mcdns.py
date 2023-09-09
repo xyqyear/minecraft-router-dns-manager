@@ -1,6 +1,7 @@
 import asyncio
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, Optional
 
+from ..logger import logger
 from .dns import AddRecordListT, AddRecordT, DNSClient, RecordListT, ReturnRecordT
 
 
@@ -115,7 +116,7 @@ class MCDNS:
             server_name=server_name, address_name=address_name, port=int(port)
         )
 
-    async def pull(self) -> MCDNSPullResultT:
+    async def pull(self) -> Optional[MCDNSPullResultT]:
         """
         pull the address list from the dns record
         :raises Exception: if failed to get records from dns client
@@ -125,30 +126,48 @@ class MCDNS:
         record_list = await self._get_relevent_records()
 
         addresses = AddressesT()
-        server_list = list[str]()
+        # we use a dict of lists instead of a simple server name list
+        # to check the consistency of the srv records
+        # because sometimes the dns provider doesn't update the records correctly
+        # I'm looking at you, dnspod.
+        server_to_addresses_list_map = dict[str, list[str]]()
 
         port_map = dict[str, int]()
         for record in record_list:
             if record.record_type == "SRV":
                 parsed_result = self._parse_srv_record(record)
-                if parsed_result.server_name not in server_list:
-                    server_list.append(parsed_result.server_name)
                 port_map[parsed_result.address_name] = parsed_result.port
+                server_to_addresses_list_map.setdefault(
+                    parsed_result.server_name, []
+                ).append(parsed_result.address_name)
             # if it's not a srv record, then it must be a A/AAAA/CNAME record
             # we do this to just make pylance happy
             elif record.record_type in ("A", "AAAA", "CNAME"):
-                address_name = record.sub_domain.split(".")[-2]
+                splitted_sub_domain = record.sub_domain.split(".")
+                if len(splitted_sub_domain) < 2:
+                    return None
+                address_name = splitted_sub_domain[-2]
                 addresses[address_name] = AddressInfoT(
                     type=record.record_type,
                     host=record.value,
                     port=0,
                 )
 
+        # check if the srv records are consistent
+        # if not, return None
+        for _, addresses_list in server_to_addresses_list_map.items():
+            if set(addresses_list) != set(addresses.keys()):
+                return None
+
         for address_name in addresses.keys():
             if address_name in port_map:
                 addresses[address_name] = addresses[address_name]._replace(
                     port=port_map[address_name]
                 )
+            else:
+                return None
+
+        server_list = list(server_to_addresses_list_map.keys())
 
         return MCDNSPullResultT(addresses, server_list)
 
@@ -157,8 +176,11 @@ class MCDNS:
         sync the dns record to the address list
         :raises Exception: if failed to update dns record
         """
-        # we want to make sure only one push is running at the same time
         if not (addresses and server_list):
+            logger.warning(
+                "addresses or server_list is empty, deleting all relevant records"
+            )
+            await self._remove_relevent_records()
             return
 
         record_list = AddRecordListT()
@@ -185,6 +207,8 @@ class MCDNS:
                     )
                 )
 
+        # we want to make sure only one push is running at the same time
         async with self._dns_update_lock:
             await self._remove_relevent_records()
+            logger.info(f"adding records: {record_list}")
             await self._dns_client.add_records(record_list)

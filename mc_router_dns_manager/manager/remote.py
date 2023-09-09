@@ -28,9 +28,14 @@ class Remote:
         """
         if dns record isn't consistent with mc-router, return None
         """
-        (address_list, servers), (addresses, server_list) = await asyncio.gather(
+        (address_list, servers), mcdns_pull_result = await asyncio.gather(
             self._mc_router.pull(), self._mc_dns.pull()
         )
+
+        if not mcdns_pull_result:
+            return None
+
+        (addresses, server_list) = mcdns_pull_result
 
         if set(address_list) != set(addresses.keys()):
             return None

@@ -67,7 +67,12 @@ class MCDNSPushTestPairT(NamedTuple):
     expected_record_list: AddRecordListT
 
 
-pull_test_pairs = [
+common_test_pairs = [
+    MCDNSPullTestPairT(
+        record_list=[],
+        expected_addresses=AddressesT({}),
+        expected_server_list=[],
+    ),
     MCDNSPullTestPairT(
         record_list=[
             AddRecordT(
@@ -174,6 +179,81 @@ pull_test_pairs = [
     ),
 ]
 
+pull_test_pairs = [
+    MCDNSPullTestPairT(
+        record_list=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="*.backup.mc",
+                value="domain2.com",
+                record_type="CNAME",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="*.hk.mc",
+                value="domain3.com",
+                record_type="CNAME",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.vanilla.mc",
+                value="0 5 11111 vanilla.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.vanilla.backup.mc",
+                value="0 5 22222 vanilla.backup.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.vanilla.hk.mc",
+                value="0 5 33333 vanilla.hk.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.gtnh.backup.mc",
+                value="0 5 22222 gtnh.backup.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.gtnh.hk.mc",
+                value="0 5 33333 gtnh.hk.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+        ],
+        expected_addresses=AddressesT({}),
+        expected_server_list=[],
+    ),
+    MCDNSPullTestPairT(
+        record_list=[
+            AddRecordT(
+                sub_domain="mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="_minecraft._tcp.vanilla.mc",
+                value="0 5 25565 vanilla.mc.example.com",
+                record_type="SRV",
+                ttl=600,
+            ),
+        ],
+        expected_addresses=AddressesT({}),
+        expected_server_list=[],
+    ),
+]
+
 push_test_pairs = [
     MCDNSPushTestPairT(
         original_record_list=[
@@ -265,7 +345,9 @@ push_test_pairs = [
     ),
 ]
 
-for test_pair in pull_test_pairs:
+pull_test_pairs.extend(common_test_pairs)
+
+for test_pair in common_test_pairs:
     push_test_pairs.append(
         MCDNSPushTestPairT(
             original_record_list=[],
@@ -289,7 +371,13 @@ async def test_pull(
     await dns_client.add_records(record_list)
 
     mcdns = MCDNS(dns_client, "mc")
-    pulled_addresses, pulled_server_list = await mcdns.pull()
+
+    pull_result = await mcdns.pull()
+    if not pull_result:
+        assert expected_addresses == {}
+        return
+
+    pulled_addresses, pulled_server_list = pull_result
 
     assert pulled_addresses == expected_addresses
     assert set(pulled_server_list) == set(expected_server_list)

@@ -5,6 +5,8 @@ wrapper for mc-router client
 from typing import NamedTuple
 
 from .mcrouter_client import BaseMCRouterClient, RoutesT
+from ..logger import logger
+
 
 AddressNameListT = list[str]
 
@@ -79,4 +81,5 @@ class MCRouter:
                     f"{server_name}.{sub_domain_base}.{self._domain}"
                 ] = f"localhost:{server_port}"
 
+        logger.info(f"pushing routes to mc-router: {routes}")
         await self._client.override_routes(routes)
