@@ -157,6 +157,9 @@ class MCDNS:
         # if not, return None
         for _, addresses_list in server_to_addresses_list_map.items():
             if set(addresses_list) != set(addresses.keys()):
+                logger.info(
+                    f"srv records are not consistent: {server_to_addresses_list_map}"
+                )
                 return None
 
         for address_name in addresses.keys():
