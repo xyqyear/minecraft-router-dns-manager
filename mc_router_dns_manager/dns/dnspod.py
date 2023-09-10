@@ -270,6 +270,8 @@ class DNSPodClient(DNSClient):
                 "RecordIdList": record_ids,
             },
         )
+        # add a delay before adding any records
+        await asyncio.sleep(2)
 
     async def add_records(self, records: AddRecordListT):
         """
