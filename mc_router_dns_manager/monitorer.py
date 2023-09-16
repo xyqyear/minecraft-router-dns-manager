@@ -67,6 +67,8 @@ class Monitorer:
         try:
             async with self._update_lock:
                 await self._update()
+                # wait for 3 seconds for the dns provider to update
+                await asyncio.sleep(3)
         except Exception as e:
             logger.warning(f"error while updating: {e}")
 
