@@ -46,6 +46,8 @@ class Monitorer:
         self._update_queue = 0
         self._update_lock = asyncio.Lock()
 
+        self._backoff_timer = 2
+
     def _queue_update(self):
         logger.info("queueing update from ws event")
         self._update_queue += 1
@@ -64,13 +66,17 @@ class Monitorer:
             )
 
     async def _try_update(self):
+        await asyncio.sleep(self._backoff_timer - 2)
         try:
             async with self._update_lock:
                 await self._update()
-                # wait for 3 seconds for the dns provider to update
-                await asyncio.sleep(3)
+                # wait for 10 seconds for the dns provider to update
+                await asyncio.sleep(10)
+            # reset backoff timer if successful
+            self._backoff_timer = 2
         except Exception as e:
             logger.warning(f"error while updating: {e}")
+            self._backoff_timer *= 1.5
 
     async def _check_queue_loop(self):
         while True:
@@ -87,6 +93,9 @@ class Monitorer:
                 break
             except Exception as e:
                 logger.warning(f"error while initializing: {e}")
+                await asyncio.sleep(self._backoff_timer - 2)
+                self._backoff_timer *= 1.5
+        self._backoff_timer = 2
         logger.info("initial check done.")
 
         asyncio.create_task(self._docker_watcher.listen_to_ws(self._queue_update))
