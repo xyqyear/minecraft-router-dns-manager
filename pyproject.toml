@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "minecraft-router-dns-manager"
-version = "0.1.6"
+version = "0.1.7"
 description = "a tool that automatically manages mc-router and dns records for minecraft docker"
 authors = ["xyqyear <xyqyear@gmail.com>"]
 readme = "README.md"
