@@ -70,8 +70,8 @@ class Monitorer:
         try:
             async with self._update_lock:
                 await self._update()
-                # wait for 10 seconds for the dns provider to update
-                await asyncio.sleep(10)
+                # wait for 60 seconds for the dns provider to update
+                await asyncio.sleep(60)
             # reset backoff timer if successful
             self._backoff_timer = 2
         except Exception as e:
