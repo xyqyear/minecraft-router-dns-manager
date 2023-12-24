@@ -53,26 +53,29 @@ class Monitorer:
         self._update_queue += 1
 
     async def _update(self):
+        """
+        :return: True if have updated, False otherwise
+        """
         logger.debug("checking for updates...")
         remote_pull_result, local_pull_result = await asyncio.gather(
             self._remote.pull(), self._local.pull()
         )
         if remote_pull_result == local_pull_result:
-            return
-        else:
-            logger.info(f"pushing changes: {local_pull_result}")
-            await self._remote.push(
-                local_pull_result.addresses, local_pull_result.servers
-            )
+            return False
+
+        logger.info(f"pushing changes: {local_pull_result}")
+        await self._remote.push(local_pull_result.addresses, local_pull_result.servers)
+        return True
 
     async def _try_update(self):
         await asyncio.sleep(self._backoff_timer - 2)
         try:
             async with self._update_lock:
-                await self._update()
-                # wait for 60 seconds for the dns provider to update
-                await asyncio.sleep(60)
+                if await self._update():
+                    # wait for 60 seconds for the dns provider to update
+                    await asyncio.sleep(60)
             # reset backoff timer if successful
+            # (not necessarily having updated, just that the request is successful)
             self._backoff_timer = 2
         except Exception as e:
             logger.warning(f"error while updating: {e}")
