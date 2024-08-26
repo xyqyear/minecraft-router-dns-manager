@@ -33,15 +33,13 @@ class NatmapMonitorClient:
         while True:
             try:
                 logger.info("connecting to natmap monitor ws...")
-                async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
+                async with self._session.ws_connect(
+                    self._url + "ws", timeout=self._timeout
+                ) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
                             message: dict[str, MappingValueT] = msg.json()
-                            for (
-                                port
-                            ) in (
-                                self._get_port_to_address_name_mapping_from_config().keys()
-                            ):
+                            for port in self._get_port_to_address_name_mapping_from_config().keys():
                                 if f"tcp:{port}" in message:
                                     logger.info(
                                         f"received relevent natmap message: {message}"

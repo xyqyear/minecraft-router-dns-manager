@@ -170,6 +170,6 @@ async def test_remote_pull(
     await mc_router_client.override_routes(routes)
 
     pull_result = await remote.pull()
-    assert pull_result != None
+    assert pull_result is not None
     assert pull_result.addresses == expected_addresses
     assert pull_result.servers == expected_servers

@@ -27,7 +27,9 @@ class DockerWatcherClient:
         while True:
             try:
                 logger.info("connecting to docker watcher ws...")
-                async with self._session.ws_connect(self._url + "ws", timeout=self._timeout) as ws:  # type: ignore
+                async with self._session.ws_connect(
+                    self._url + "ws", timeout=self._timeout
+                ) as ws:  # type: ignore
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:  # type: ignore
                             logger.info(f"received docker message: {msg.json()}")

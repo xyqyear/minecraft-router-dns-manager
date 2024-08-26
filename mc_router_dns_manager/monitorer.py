@@ -8,11 +8,12 @@ This class should be responsible for the following:
     - also checks if there is any change
     - if there is a change, call the callback function
 
-Specifically, when initializing, it should check for changes once 
+Specifically, when initializing, it should check for changes once
     and call the callback function if there is any change (indefinitely retrying if there is an error)
 
 I think there should also be a queue for events that are not yet processed
 """
+
 import asyncio
 from typing import Optional
 
@@ -79,7 +80,9 @@ class Monitorer:
             self._backoff_timer = 2
         except Exception as e:
             logger.warning(f"error while updating: {e}")
-            self._backoff_timer *= 1.5
+            # set a maximum backoff timer of 60 seconds (roughly)
+            if self._backoff_timer < 60:
+                self._backoff_timer *= 1.5
 
     async def _check_queue_loop(self):
         while True:

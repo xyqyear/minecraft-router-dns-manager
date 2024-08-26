@@ -10,14 +10,20 @@ from mc_router_dns_manager.dns.dns import (
     RecordListT,
     ReturnRecordT,
 )
-from mc_router_dns_manager.dns.mcdns import MCDNS, AddressesT, AddressInfoT
+from mc_router_dns_manager.dns.mcdns import (
+    MCDNS,
+    AddressesT,
+    AddressInfoT,
+    DiffUpdateRecordResultT,
+)
 
 
 class DummyDNSClient(DNSClient):
-    def __init__(self, domain: str):
+    def __init__(self, domain: str, has_update_capability: bool = True):
         self._domain = domain
-        self._records = dict[int, AddRecordT]()
+        self._records = dict[int | str, AddRecordT]()
         self._next_id = 0
+        self._has_update_capability_value = has_update_capability
 
     def is_initialized(self) -> bool:
         return True
@@ -28,6 +34,9 @@ class DummyDNSClient(DNSClient):
 
     def get_domain(self) -> str:
         return self._domain
+
+    def has_update_capability(self) -> bool:
+        return self._has_update_capability_value
 
     async def list_records(self) -> RecordListT:
         return [
@@ -41,8 +50,14 @@ class DummyDNSClient(DNSClient):
             for record_id, record in self._records.items()
         ]
 
-    async def update_records_value(self, record_ids: RecordIdListT, value: str):
-        ...
+    async def update_records(self, records: RecordListT):
+        for record in records:
+            self._records[record.record_id] = AddRecordT(
+                sub_domain=record.sub_domain,
+                value=record.value,
+                record_type=record.record_type,
+                ttl=record.ttl,
+            )
 
     async def remove_records(self, record_ids: RecordIdListT):
         for record_id in record_ids:
@@ -394,21 +409,421 @@ async def test_push(
     server_list: list[str],
     expected_record_list: AddRecordListT,
 ):
-    dns_client = DummyDNSClient("example.com")
-    await dns_client.add_records(original_record_list)
+    for has_update_capability in [True, False]:
+        dns_client = DummyDNSClient("example.com", has_update_capability)
+        await dns_client.add_records(original_record_list)
 
-    mcdns = MCDNS(dns_client, "mc")
-    await mcdns.push(addresses, server_list)
+        mcdns = MCDNS(dns_client, "mc")
+        await mcdns.push(addresses, server_list)
 
-    record_list = await dns_client.list_records()
-    record_list_with_out_id = [
-        AddRecordT(
-            sub_domain=record.sub_domain,
-            value=record.value,
-            record_type=record.record_type,
-            ttl=record.ttl,
-        )
-        for record in record_list
-    ]
+        record_list = await dns_client.list_records()
+        record_list_with_out_id = [
+            AddRecordT(
+                sub_domain=record.sub_domain,
+                value=record.value,
+                record_type=record.record_type,
+                ttl=record.ttl,
+            )
+            for record in record_list
+        ]
 
-    assert set(record_list_with_out_id) == set(expected_record_list)
+        assert set(record_list_with_out_id) == set(expected_record_list)
+
+
+class MCDNSDiffUpdateRecordsTestPairT(NamedTuple):
+    old_records: RecordListT
+    new_records: AddRecordListT
+    expected_return: DiffUpdateRecordResultT
+
+
+diff_update_records_test_pairs = [
+    # test empty old and new records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[],
+        new_records=[],
+        expected_return=DiffUpdateRecordResultT([], [], []),
+    ),
+    # test add new records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [
+                AddRecordT(
+                    sub_domain="*.mc",
+                    value="1.1.1.1",
+                    record_type="A",
+                    ttl=600,
+                )
+            ],
+            [],
+            [],
+        ),
+    ),
+    # test remove old records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [1],
+            [],
+        ),
+    ),
+    # test update records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.2",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="*.mc",
+                    value="1.1.1.2",
+                    record_id=1,
+                    record_type="A",
+                    ttl=600,
+                )
+            ],
+        ),
+    ),
+    # test identical records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT([], [], []),
+    ),
+    # test different TTL
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=300,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="*.mc",
+                    value="1.1.1.1",
+                    record_id=1,
+                    record_type="A",
+                    ttl=300,
+                )
+            ],
+        ),
+    ),
+    # test different value and TTL
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.2",
+                record_type="A",
+                ttl=300,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="*.mc",
+                    value="1.1.1.2",
+                    record_id=1,
+                    record_type="A",
+                    ttl=300,
+                )
+            ],
+        ),
+    ),
+    # test add new record and update existing record
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_type="A",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="test.mc",
+                value="2.2.2.2",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [
+                AddRecordT(
+                    sub_domain="test.mc",
+                    value="2.2.2.2",
+                    record_type="A",
+                    ttl=600,
+                )
+            ],
+            [],
+            [],
+        ),
+    ),
+    # test remove record and add new record
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="test.mc",
+                value="2.2.2.2",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [
+                AddRecordT(
+                    sub_domain="test.mc",
+                    value="2.2.2.2",
+                    record_type="A",
+                    ttl=600,
+                )
+            ],
+            [1],
+            [],
+        ),
+    ),
+    # test update multiple records
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.1",
+                record_id=1,
+                record_type="A",
+                ttl=600,
+            ),
+            ReturnRecordT(
+                sub_domain="test.mc",
+                value="2.2.2.2",
+                record_id=2,
+                record_type="A",
+                ttl=300,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="*.mc",
+                value="1.1.1.2",
+                record_type="A",
+                ttl=600,
+            ),
+            AddRecordT(
+                sub_domain="test.mc",
+                value="2.2.2.3",
+                record_type="A",
+                ttl=300,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="*.mc",
+                    value="1.1.1.2",
+                    record_id=1,
+                    record_type="A",
+                    ttl=600,
+                ),
+                ReturnRecordT(
+                    sub_domain="test.mc",
+                    value="2.2.2.3",
+                    record_id=2,
+                    record_type="A",
+                    ttl=300,
+                ),
+            ],
+        ),
+    ),
+    # test empty sub_domain
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="",
+                value="3.3.3.3",
+                record_id=3,
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="",
+                value="4.4.4.4",
+                record_type="A",
+                ttl=600,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="",
+                    value="4.4.4.4",
+                    record_id=3,
+                    record_type="A",
+                    ttl=600,
+                )
+            ],
+        ),
+    ),
+    # test multiple changes with different TTLs and values
+    MCDNSDiffUpdateRecordsTestPairT(
+        old_records=[
+            ReturnRecordT(
+                sub_domain="a.mc",
+                value="5.5.5.5",
+                record_id=4,
+                record_type="A",
+                ttl=600,
+            ),
+            ReturnRecordT(
+                sub_domain="b.mc",
+                value="6.6.6.6",
+                record_id=5,
+                record_type="A",
+                ttl=300,
+            ),
+        ],
+        new_records=[
+            AddRecordT(
+                sub_domain="a.mc",
+                value="5.5.5.6",
+                record_type="A",
+                ttl=700,
+            ),
+            AddRecordT(
+                sub_domain="b.mc",
+                value="6.6.6.7",
+                record_type="A",
+                ttl=400,
+            ),
+        ],
+        expected_return=DiffUpdateRecordResultT(
+            [],
+            [],
+            [
+                ReturnRecordT(
+                    sub_domain="a.mc",
+                    value="5.5.5.6",
+                    record_id=4,
+                    record_type="A",
+                    ttl=700,
+                ),
+                ReturnRecordT(
+                    sub_domain="b.mc",
+                    value="6.6.6.7",
+                    record_id=5,
+                    record_type="A",
+                    ttl=400,
+                ),
+            ],
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "old_records, new_records, expected_return", diff_update_records_test_pairs
+)
+@pytest.mark.asyncio
+async def test_diff_update_records(
+    old_records: RecordListT,
+    new_records: AddRecordListT,
+    expected_return: DiffUpdateRecordResultT,
+):
+    assert expected_return == MCDNS._diff_update_records(old_records, new_records)  # type: ignore since we are unit testing
