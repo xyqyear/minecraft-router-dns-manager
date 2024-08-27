@@ -1,10 +1,16 @@
 dns:
-  # only supports dnspod for now
-  type: dnspod
+  # huawei dns is primarily supported, because they offer low ttl with no extra cost
+  type: huawei
   params:
     domain: example.com
-    id: secretid
-    key: secretkey
+    ak: accesskey
+    sk: secretkey
+    region: cn-south-1
+  # type: dnspod
+  # params:
+  #   domain: example.com
+  #   id: secretid
+  #   key: secretkey
 
 mc_router_baseurl: http://localhost:26666
 
@@ -17,7 +23,7 @@ docker_watcher:
 
 managed_sub_domain: "mc"
 
-dns_ttl: 600
+dns_ttl: 15
 
 addresses:
   "*":

@@ -1,8 +1,15 @@
 import asyncio
-from typing import Literal, NamedTuple, Optional
+from typing import Any, Coroutine, Literal, NamedTuple, Optional
 
 from ..logger import logger
-from .dns import AddRecordListT, AddRecordT, DNSClient, RecordListT, ReturnRecordT
+from .dns import (
+    AddRecordListT,
+    AddRecordT,
+    DNSClient,
+    RecordIdListT,
+    RecordListT,
+    ReturnRecordT,
+)
 
 
 class AddressInfoT(NamedTuple):
@@ -23,6 +30,17 @@ class SrvParsedResultT(NamedTuple):
 class MCDNSPullResultT(NamedTuple):
     addresses: AddressesT
     server_list: list[str]
+
+
+class DiffUpdateRecordResultT(NamedTuple):
+    records_to_add: AddRecordListT
+    records_to_remove: RecordIdListT
+    records_to_update: RecordListT
+
+
+class RecordKey(NamedTuple):
+    sub_domain: str
+    record_type: str
 
 
 """
@@ -77,7 +95,7 @@ class MCDNS:
                 relevent_records.append(record)
             elif (
                 record.record_type == "SRV"
-                and record.sub_domain.startswith(f"_minecraft._tcp.")
+                and record.sub_domain.startswith("_minecraft._tcp.")
                 and record.sub_domain.endswith(f".{self._managed_sub_domain}")
             ):
                 relevent_records.append(record)
@@ -174,16 +192,64 @@ class MCDNS:
 
         return MCDNSPullResultT(addresses, server_list)
 
+    @staticmethod
+    def _diff_update_records(
+        old_records: RecordListT, new_records: AddRecordListT
+    ) -> DiffUpdateRecordResultT:
+        old_records_dict = dict[
+            RecordKey,
+            ReturnRecordT,
+        ]()
+        new_records_dict = dict[
+            RecordKey,
+            AddRecordT,
+        ]()
+        for record in old_records:
+            old_records_dict[RecordKey(record.sub_domain, record.record_type)] = record
+        for record in new_records:
+            new_records_dict[RecordKey(record.sub_domain, record.record_type)] = record
+
+        records_to_add = AddRecordListT()
+        records_to_remove = RecordIdListT()
+        records_to_update = RecordListT()
+
+        for new_record in new_records:
+            key = RecordKey(new_record.sub_domain, new_record.record_type)
+            if key in old_records_dict:
+                old_record = old_records_dict[key]
+                if (
+                    old_record.value != new_record.value
+                    or old_record.ttl != new_record.ttl
+                ):
+                    updated_record = ReturnRecordT(
+                        sub_domain=new_record.sub_domain,
+                        value=new_record.value,
+                        record_id=old_record.record_id,
+                        record_type=new_record.record_type,
+                        ttl=new_record.ttl,
+                    )
+                    records_to_update.append(updated_record)
+            else:
+                records_to_add.append(new_record)
+
+        for old_record in old_records:
+            key = RecordKey(old_record.sub_domain, old_record.record_type)
+            if key not in new_records_dict:
+                records_to_remove.append(old_record.record_id)
+
+        return DiffUpdateRecordResultT(
+            records_to_add=records_to_add,
+            records_to_remove=records_to_remove,
+            records_to_update=records_to_update,
+        )
+
     async def push(self, addresses: AddressesT, server_list: list[str]):
         """
         sync the dns record to the address list
         :raises Exception: if failed to update dns record
         """
         if not (addresses and server_list):
-            logger.warning(
-                "addresses or server_list is empty, deleting all relevant records"
-            )
-            await self._remove_relevent_records()
+            logger.warning("addresses or server_list is empty, skipping dns update")
             return
 
         record_list = AddRecordListT()
@@ -212,6 +278,41 @@ class MCDNS:
 
         # we want to make sure only one push is running at the same time
         async with self._dns_update_lock:
-            await self._remove_relevent_records()
-            logger.info(f"adding records: {record_list}")
-            await self._dns_client.add_records(record_list)
+            old_records = await self._get_relevent_records()
+            (
+                records_to_add,
+                records_to_remove,
+                records_to_update,
+            ) = self._diff_update_records(old_records, record_list)
+
+            if self._dns_client.has_update_capability():
+                tasks = list[Coroutine[Any, Any, None]]()
+                if records_to_add:
+                    tasks.append(self._dns_client.add_records(records_to_add))
+                    logger.info(f"adding records: {records_to_add}")
+                if records_to_remove:
+                    tasks.append(self._dns_client.remove_records(records_to_remove))
+                    logger.info(f"removing records: {records_to_remove}")
+                if records_to_update:
+                    tasks.append(self._dns_client.update_records(records_to_update))
+                    logger.info(f"updating records: {records_to_update}")
+                if tasks:
+                    await asyncio.gather(*tasks)
+            else:
+                for record in records_to_update:
+                    records_to_remove.append(record.record_id)
+                    records_to_add.append(
+                        AddRecordT(
+                            sub_domain=record.sub_domain,
+                            value=record.value,
+                            record_type=record.record_type,
+                            ttl=record.ttl,
+                        )
+                    )
+                # if the dns client doesn't support update, we have to first remove and then add
+                if records_to_remove:
+                    logger.info(f"removing records: {records_to_remove}")
+                    await self._dns_client.remove_records(records_to_remove)
+                if records_to_add:
+                    logger.info(f"adding records: {records_to_add}")
+                    await self._dns_client.add_records(records_to_add)

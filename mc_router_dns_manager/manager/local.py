@@ -1,6 +1,7 @@
 """
 Responsibility: update mc-router and dns records with relevant information
 """
+
 from typing import NamedTuple, Optional, cast
 
 from ..client.docker_watcher_client import DockerWatcherClient

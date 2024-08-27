@@ -1,6 +1,7 @@
 """
 Responsibility: update mc-router and dns records with relevant information
 """
+
 import asyncio
 from typing import NamedTuple, Optional
 

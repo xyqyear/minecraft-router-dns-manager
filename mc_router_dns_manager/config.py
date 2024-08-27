@@ -1,20 +1,32 @@
 import os
-from typing import Literal, Optional, TypedDict
+from typing import Literal, Optional, TypedDict, cast
 
 from ruamel.yaml import YAML
 
 CONFIG_PATH = os.environ.get("MRDM_CONFIG_PATH", "config.yaml")
 
 
-class DNSParamsT(TypedDict):
+class DNSPodParamsT(TypedDict):
     domain: str
     id: str
     key: str
 
 
-class DNST(TypedDict):
+class DNSPodT(TypedDict):
     type: Literal["dnspod"]
-    params: DNSParamsT
+    params: DNSPodParamsT
+
+
+class HuaweiParamsT(TypedDict):
+    domain: str
+    ak: str
+    sk: str
+    region: str | None
+
+
+class HuaweiT(TypedDict):
+    type: Literal["huawei"]
+    params: HuaweiParamsT
 
 
 class NatmapMonitorT(TypedDict):
@@ -43,7 +55,7 @@ class AddressConfigT(TypedDict):
 
 
 class ConfigT(TypedDict):
-    dns: DNST
+    dns: DNSPodT | HuaweiT
     mc_router_baseurl: str
     natmap_monitor: NatmapMonitorT
     docker_watcher: DockerWatcherT
@@ -56,4 +68,5 @@ class ConfigT(TypedDict):
 
 yaml = YAML(typ="safe")
 with open(CONFIG_PATH) as f:
-    config: ConfigT = yaml.load(f)
+    _config = yaml.load(f)  # type: ignore
+    config = cast(ConfigT, _config)

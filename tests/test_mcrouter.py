@@ -64,7 +64,6 @@ push_test_pairs = [
 
 
 @pytest.mark.parametrize("address_name_list, servers, expected_routes", push_test_pairs)
-@pytest.mark.asyncio
 async def test_push(
     address_name_list: AddressNameListT, servers: ServersT, expected_routes: RoutesT
 ):
@@ -80,7 +79,6 @@ async def test_push(
 @pytest.mark.parametrize(
     "expected_address_name_list, expected_servers, routes", push_test_pairs
 )
-@pytest.mark.asyncio
 async def test_pull(
     expected_address_name_list: AddressNameListT,
     expected_servers: ServersT,

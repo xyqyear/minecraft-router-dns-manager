@@ -14,13 +14,11 @@ from .dns import AddRecordListT, DNSClient, RecordIdListT, RecordListT, ReturnRe
 
 
 class DNSPodSDKRequestT(Protocol):
-    def from_json_string(self, jsonStr: str) -> None:
-        ...
+    def from_json_string(self, jsonStr: str) -> None: ...
 
 
 class DNSPodSDKResponseT(Protocol):
-    def to_json_string(self) -> str:
-        ...
+    def to_json_string(self) -> str: ...
 
 
 DNSPodSDKCallFuncT = Callable[[DNSPodSDKRequestT], DNSPodSDKResponseT]
@@ -72,13 +70,13 @@ class DNSPodDescribeRecordListRequestT(TypedDict):
 
 
 class DNSPodModifyRecordBatchRequestT(TypedDict):
-    RecordIdList: list[int]
+    RecordIdList: RecordIdListT
     Change: str
     ChangeTo: str
 
 
 class DNSPodDeleteRecordBatchRequestT(TypedDict):
-    RecordIdList: list[int]
+    RecordIdList: RecordIdListT
 
 
 class DNSPodCreateRecordBatchRequestT(TypedDict):
@@ -167,7 +165,7 @@ class DNSPodClient(DNSClient):
 
         domain_list = response["DomainList"]
         if len(domain_list) == 0:
-            raise Exception(f"There is no domain in this account.")
+            raise Exception("There is no domain in this account.")
 
         for domain in domain_list:
             if domain["Name"] == self._domain:
@@ -245,19 +243,8 @@ class DNSPodClient(DNSClient):
 
         return sanitized_record_list
 
-    async def update_records_value(self, record_ids: RecordIdListT, value: str):
-        """
-        update records value
-        :raises TencentCloudSDKException: if failed to call ModifyRecordBatch api
-        """
-        await self._try_request(
-            "ModifyRecordBatch",
-            {
-                "RecordIdList": record_ids,
-                "Change": "value",
-                "ChangeTo": value,
-            },
-        )
+    def has_update_capability(self) -> bool:
+        return False
 
     async def remove_records(self, record_ids: RecordIdListT):
         """

@@ -117,7 +117,6 @@ remote_test_pairs = [
 @pytest.mark.parametrize(
     "addresses, servers, expected_routes, expected_record_list", remote_test_pairs
 )
-@pytest.mark.asyncio
 async def test_remote_push(
     addresses: AddressesT,
     servers: ServersT,
@@ -152,7 +151,6 @@ async def test_remote_push(
 @pytest.mark.parametrize(
     "expected_addresses, expected_servers, routes, record_list", remote_test_pairs
 )
-@pytest.mark.asyncio
 async def test_remote_pull(
     expected_addresses: AddressesT,
     expected_servers: ServersT,

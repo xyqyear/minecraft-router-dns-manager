@@ -376,7 +376,6 @@ for test_pair in common_test_pairs:
 @pytest.mark.parametrize(
     "record_list, expected_addresses, expected_server_list", pull_test_pairs
 )
-@pytest.mark.asyncio
 async def test_pull(
     record_list: AddRecordListT,
     expected_addresses: AddressesT,
@@ -402,7 +401,6 @@ async def test_pull(
     "original_record_list, addresses, server_list, expected_record_list",
     push_test_pairs,
 )
-@pytest.mark.asyncio
 async def test_push(
     original_record_list: AddRecordListT,
     addresses: AddressesT,
@@ -820,7 +818,6 @@ diff_update_records_test_pairs = [
 @pytest.mark.parametrize(
     "old_records, new_records, expected_return", diff_update_records_test_pairs
 )
-@pytest.mark.asyncio
 async def test_diff_update_records(
     old_records: RecordListT,
     new_records: AddRecordListT,
