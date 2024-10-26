@@ -17,12 +17,12 @@ I think there should also be a queue for events that are not yet processed
 import asyncio
 from typing import Optional
 
-from .client.docker_watcher_client import DockerWatcherClient
-from .client.natmap_monitor_client import NatmapMonitorClient
 from .dns.mcdns import MCDNS
 from .logger import logger
 from .manager.local import Local
 from .manager.remote import Remote
+from .monitor.docker_watcher import DockerWatcher
+from .monitor.natmap_monitor_client import NatmapMonitorClient
 from .router.mcrouter import MCRouter
 
 
@@ -31,7 +31,7 @@ class Monitorer:
         self,
         mcdns: MCDNS,
         mcrouter: MCRouter,
-        docker_watcher: DockerWatcherClient,
+        docker_watcher: DockerWatcher,
         natmap_monitor: Optional[NatmapMonitorClient],
         poll_interval: int,
     ) -> None:
@@ -74,7 +74,7 @@ class Monitorer:
             async with self._update_lock:
                 if await self._update():
                     # wait for 60 seconds for the dns provider to update
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(10)
             # reset backoff timer if successful
             # (not necessarily having updated, just that the request is successful)
             self._backoff_timer = 2
@@ -104,7 +104,7 @@ class Monitorer:
         self._backoff_timer = 2
         logger.info("initial check done.")
 
-        asyncio.create_task(self._docker_watcher.listen_to_ws(self._queue_update))
+        asyncio.create_task(self._docker_watcher.watch_servers(self._queue_update))
         if self._natmap_monitor:
             asyncio.create_task(self._natmap_monitor.listen_to_ws(self._queue_update))
 

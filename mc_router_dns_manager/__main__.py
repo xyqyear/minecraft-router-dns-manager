@@ -1,11 +1,11 @@
 import asyncio
 
-from .client.docker_watcher_client import DockerWatcherClient
-from .client.natmap_monitor_client import NatmapMonitorClient
 from .config import config
 from .dns.dnspod import DNSPodClient
 from .dns.huawei import HuaweiDNSClient
 from .dns.mcdns import MCDNS
+from .monitor.docker_watcher import DockerWatcher
+from .monitor.natmap_monitor_client import NatmapMonitorClient
 from .monitorer import Monitorer
 from .router.mcrouter import MCRouter
 from .router.mcrouter_client import MCRouterClient
@@ -35,7 +35,7 @@ async def main():
         config["managed_sub_domain"],
     )
 
-    docker_watcher = DockerWatcherClient(config["docker_watcher"]["baseurl"])
+    docker_watcher = DockerWatcher(config["docker_watcher"]["servers_root_path"])
     if config["natmap_monitor"]["enabled"]:
         natmap_monitor = NatmapMonitorClient(config["natmap_monitor"]["baseurl"])
     else:

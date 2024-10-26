@@ -36,7 +36,7 @@ class NatmapMonitorT(TypedDict):
 
 class DockerWatcherT(TypedDict):
     enabled: bool
-    baseurl: str
+    servers_root_path: str
 
 
 class NatmapParamsT(TypedDict):

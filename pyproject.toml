@@ -13,13 +13,13 @@ aiohttp = "^3.10.5"
 tencentcloud-sdk-python = "^3.0.973"
 ruamel-yaml = "^0.18.6"
 huaweicloudsdkdns = "^3.1.111"
+minecraft-docker-manager-lib = {git = "https://github.com/xyqyear/minecraft-docker-manager-lib", rev = "v0.0.3"}
 
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
 pytest = "^8.3.2"
 pytest-asyncio = "^0.24.0"
-tencentcloud-sdk-python = "^3.0.1217"
 python-dotenv = "^1.0.1"
 setuptools = "^73.0.1"
 

@@ -4,10 +4,10 @@ Responsibility: update mc-router and dns records with relevant information
 
 from typing import NamedTuple, Optional, cast
 
-from ..client.docker_watcher_client import DockerWatcherClient
-from ..client.natmap_monitor_client import NatmapMonitorClient
 from ..config import ManualParamsT, config
 from ..dns.mcdns import AddressesT, AddressInfoT
+from ..monitor.docker_watcher import DockerWatcher
+from ..monitor.natmap_monitor_client import NatmapMonitorClient
 from ..router.mcrouter import ServersT
 
 
@@ -19,7 +19,7 @@ class PullResultT(NamedTuple):
 class Local:
     def __init__(
         self,
-        docker_watcher: DockerWatcherClient,
+        docker_watcher: DockerWatcher,
         natmap_monitor_client: Optional[NatmapMonitorClient],
     ) -> None:
         self._docker_watcher = docker_watcher

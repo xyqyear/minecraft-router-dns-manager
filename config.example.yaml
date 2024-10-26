@@ -19,7 +19,7 @@ natmap_monitor:
   baseurl: http://localhost:8090
 docker_watcher:
   enabled: true
-  baseurl: http://localhost:8091
+  servers_root_path: /path/to/servers
 
 managed_sub_domain: "mc"
 

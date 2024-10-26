@@ -43,7 +43,10 @@ class MCRouterClient(BaseMCRouterClient):
         json: Optional[RoutePoseDataT] = None,
     ) -> Optional[RoutesT]:
         async with self._session.request(
-            method, self._base_url + path, headers=headers, json=json
+            method,
+            self._base_url + path,
+            headers=headers,  # type: ignore
+            json=json,
         ) as response:
             response_str = await response.text()
 

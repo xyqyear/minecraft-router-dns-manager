@@ -57,9 +57,9 @@ class MCRouter:
             else:
                 address_name = server_and_address[1]
 
-            if not address_name in address_name_list:
+            if address_name not in address_name_list:
                 address_name_list.append(address_name)
-            if not server_name in servers:
+            if server_name not in servers:
                 servers[server_name] = server_port
 
         return MCRouterPullResultT(address_name_list, servers)
