@@ -26,7 +26,8 @@ class DockerWatcher:
             try:
                 servers = await self.get_servers()
                 if servers != self._previous_servers:
-                    on_change()
+                    if self._previous_servers is not None:
+                        on_change()
                     self._previous_servers = servers
             except Exception as e:
                 logger.warning(f"error while watching servers: {e}")

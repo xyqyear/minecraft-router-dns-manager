@@ -50,7 +50,7 @@ class Monitorer:
         self._backoff_timer = 2
 
     def _queue_update(self):
-        logger.info("queueing update from ws event")
+        logger.info("queueing update")
         self._update_queue += 1
 
     async def _update(self):
