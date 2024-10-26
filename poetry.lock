@@ -801,7 +801,7 @@ traitlets = "*"
 
 [[package]]
 name = "minecraft-docker-manager-lib"
-version = "0.0.3"
+version = "0.0.4"
 description = "A manager lib for Minecraft server in Docker container"
 optional = false
 python-versions = "^3.12"
@@ -817,8 +817,8 @@ pyyaml = "^6.0.2"
 [package.source]
 type = "git"
 url = "https://github.com/xyqyear/minecraft-docker-manager-lib"
-reference = "v0.0.3"
-resolved_reference = "ccd9d1bcd50732a98a7c7baf44c5b85e788a8f92"
+reference = "v0.0.4"
+resolved_reference = "58c0247fc3e7872a1ec84ac6597ceabdd4bf3b19"
 
 [[package]]
 name = "multidict"
@@ -2022,4 +2022,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "0e204fe9398f3cdf413e3323e40d728eb8392a755b96c5fb505d0f214c5e7c20"
+content-hash = "7baa576ca70d3d0439545f9749b3361630277303706e9c6c0cfd050df266a61c"
