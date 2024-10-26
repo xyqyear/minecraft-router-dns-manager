@@ -53,9 +53,9 @@ class NatmapMonitorClient:
 
     def _get_port_to_address_name_mapping_from_config(self) -> dict[int, str]:
         return {
-            address["params"]["internal_port"]: address_name  # type: ignore
-            for address_name, address in config["addresses"].items()
-            if address["type"] == "natmap"
+            address.params.internal_port: address_name
+            for address_name, address in config.addresses.items()
+            if address.type == "natmap"
         }
 
     async def _get_mappings(self) -> dict[str, MappingValueT]:

@@ -2,9 +2,9 @@
 Responsibility: update mc-router and dns records with relevant information
 """
 
-from typing import NamedTuple, Optional, cast
+from typing import NamedTuple, Optional
 
-from ..config import ManualParamsT, config
+from ..config import config
 from ..dns.mcdns import AddressesT, AddressInfoT
 from ..monitor.docker_watcher import DockerWatcher
 from ..monitor.natmap_monitor_client import NatmapMonitorClient
@@ -33,13 +33,12 @@ class Local:
         else:
             addresses = AddressesT()
 
-        for address_name, address_info in config["addresses"].items():
-            if address_info["type"] == "manual":
-                address_params = cast(ManualParamsT, address_info["params"])
+        for address_name, address_info in config.addresses.items():
+            if address_info.type == "manual":
                 addresses[address_name] = AddressInfoT(
-                    type=address_params["record_type"],
-                    host=address_params["value"],
-                    port=address_params["port"],
+                    type=address_info.params.record_type,
+                    host=address_info.params.value,
+                    port=address_info.params.port,
                 )
 
         servers = await self._docker_watcher.get_servers()

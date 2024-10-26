@@ -4,6 +4,7 @@ from typing import Callable
 
 from minecraft_docker_manager_lib.manager import DockerMCManager
 
+from ..config import config
 from ..logger import logger
 from ..router.mcrouter import ServersT
 
@@ -29,4 +30,4 @@ class DockerWatcher:
                     self._previous_servers = servers
             except Exception as e:
                 logger.warning(f"error while watching servers: {e}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(config.docker_watcher.poll_interval)

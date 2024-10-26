@@ -24,7 +24,7 @@ services:
       PREVENT_PROXY_CONNECTIONS: false
       ALLOW_FLIGHT: true
     ports:
-      - 25566:25565
+      - 25565:25565
       - 25575:25575
     volumes:
       - ./data:/data

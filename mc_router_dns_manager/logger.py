@@ -4,7 +4,7 @@ import logging
 from .config import config
 
 logger = logging.getLogger("mc-router-dns-manager")
-logger.setLevel(config["logging_level"])
+logger.setLevel(config.logging_level)
 
 logging_handler = logging.StreamHandler()
 logging_formatter = logging.Formatter(
@@ -14,7 +14,7 @@ logging_handler.setFormatter(logging_formatter)
 logger.addHandler(logging_handler)
 
 
-if config["logging_level"] != "DEBUG":
+if config.logging_level != "DEBUG":
 
     class DuplicateFilter(logging.Filter):
         def filter(self, record: logging.LogRecord):
