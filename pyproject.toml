@@ -12,7 +12,7 @@ python = "^3.12"
 aiohttp = "^3.10.5"
 tencentcloud-sdk-python = "^3.0.973"
 huaweicloudsdkdns = "^3.1.111"
-minecraft-docker-manager-lib = {git = "https://github.com/xyqyear/minecraft-docker-manager-lib", rev = "v0.0.4"}
+minecraft-docker-manager-lib = {git = "https://github.com/xyqyear/minecraft-docker-manager-lib", rev = "v0.1.7"}
 pydantic = "^2.9.2"
 pydantic-settings = "^2.6.0"
 
